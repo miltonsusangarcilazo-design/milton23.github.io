@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Fuego vs Agua ULTRA 🔥💧</title>
+
+<style>
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #0a0a12;
+}
+
+canvas {
+    display: block;
+}
+
+/* JOYSTICK */
+.joystick {
+    position: fixed;
+    bottom: 30px;
+    left: 30px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+}
+
+.stick {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 50%;
+    left: 35px;
+    top: 35px;
+}
+
+.jump {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    font-size: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="game"></canvas>
+
+<div class="joystick" id="joy">
+    <div class="stick" id="stick"></div>
+</div>
+
+<button class="jump" ontouchstart="jump=true" ontouchend="jump=false">⬆</button>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let gravity = 0.6;
+let friction = 0.9;
+
+let moveX = 0;
+let jump = false;
+
+// PERSONAJE
+let p = {
+    x:100,
+    y:300,
+    w:30,
+    h:60,
+    dx:0,
+    dy:0,
+    onGround:false,
+    frame:0
+};
+
+// ENEMIGOS
+let enemies = [
+    {x:400,y:350,w:40,h:40,dir:1},
+    {x:700,y:350,w:40,h:40,dir:-1}
+];
+
+// SUELO
+let ground = canvas.height - 50;
+
+// JOYSTICK
+let joy = document.getElementById("joy");
+let stick = document.getElementById("stick");
+
+joy.addEventListener("touchmove", e => {
+    let rect = joy.getBoundingClientRect();
+    let x = e.touches[0].clientX - rect.left - 60;
+    moveX = x / 40;
+});
+
+joy.addEventListener("touchend", () => {
+    moveX = 0;
+    stick.style.left = "35px";
+});
+
+// FÍSICA
+function update() {
+    p.dx += moveX * 0.5;
+    p.dx *= friction;
+
+    if (jump && p.onGround) {
+        p.dy = -12;
+        p.onGround = false;
+    }
+
+    p.dy += gravity;
+
+    p.x += p.dx;
+    p.y += p.dy;
+
+    if (p.y + p.h > ground) {
+        p.y = ground - p.h;
+        p.dy = 0;
+        p.onGround = true;
+    }
+
+    // animación caminar
+    if (Math.abs(p.dx) > 0.5) p.frame += 0.2;
+}
+
+// ENEMIGOS
+function updateEnemies() {
+    enemies.forEach(e => {
+        e.x += e.dir * 2;
+        if (e.x < 200 || e.x > canvas.width - 200) e.dir *= -1;
+    });
+}
+
+// DIBUJO PERSONAJE
+function drawPlayer() {
+    let x = p.x;
+    let y = p.y;
+
+    // cabeza
+    ctx.fillStyle = "#ffccaa";
+    ctx.beginPath();
+    ctx.arc(x+15,y+10,10,0,Math.PI*2);
+    ctx.fill();
+
+    // ojos
+    ctx.fillStyle = "black";
+    ctx.fillRect(x+10,y+8,3,3);
+    ctx.fillRect(x+17,y+8,3,3);
+
+    // cuerpo
+    ctx.fillStyle = "red";
+    ctx.fillRect(x+10,y+20,10,25);
+
+    // piernas animadas
+    let offset = Math.sin(p.frame) * 5;
+    ctx.fillRect(x+5,y+45+offset,5,15);
+    ctx.fillRect(x+20,y+45-offset,5,15);
+
+    // brazos
+    ctx.fillRect(x+5,y+25,5,10);
+    ctx.fillRect(x+20,y+25,5,10);
+}
+
+// ENEMIGOS CON PINCHOS
+function drawEnemy(e) {
+    ctx.fillStyle = "purple";
+    ctx.fillRect(e.x,e.y,e.w,e.h);
+
+    // pinchos
+    ctx.fillStyle = "white";
+    for (let i=0;i<5;i++) {
+        ctx.beginPath();
+        ctx.moveTo(e.x + i*8, e.y);
+        ctx.lineTo(e.x + i*8 +4, e.y-10);
+        ctx.lineTo(e.x + i*8 +8, e.y);
+        ctx.fill();
+    }
+
+    // cara malvada
+    ctx.fillStyle = "black";
+    ctx.fillRect(e.x+8,e.y+10,5,5);
+    ctx.fillRect(e.x+25,e.y+10,5,5);
+    ctx.fillRect(e.x+10,e.y+25,20,5);
+}
+
+// LOOP
+function loop() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    update();
+    updateEnemies();
+
+    // suelo
+    ctx.fillStyle = "#333";
+    ctx.fillRect(0,ground,canvas.width,50);
+
+    drawPlayer();
+    enemies.forEach(drawEnemy);
+
+    requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+  </html>
